@@ -79,6 +79,12 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/announcement", async (req, res) => {
+      const result = await announcementCartCollection.find().toArray();
+      res.send(result);
+    });
+    
+
     app.get("/apartmentData", async (req, res) => {
       const result = await apartmentCollection.find().toArray();
       res.send(result);
