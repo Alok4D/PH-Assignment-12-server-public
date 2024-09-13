@@ -26,9 +26,10 @@ async function run() {
     // await client.connect();
 
     const usersCollection = client.db("apartmentDB").collection("users");
+    const announcementCartCollection = client.db("apartmentDB").collection("announcements");
     const apartmentCollection = client.db("apartmentDB").collection("apartmentData");
     const agreementCartCollection = client.db("apartmentDB").collection("agreementCarts");
-    const announcementCartCollection = client.db("apartmentDB").collection("announcements");
+    
 
     // user related api
     app.post("/users", async (req, res) => {
@@ -69,6 +70,20 @@ async function run() {
       res.send(result)
     })
 
+    // U to Member
+    app.patch('/agreement/:id', async(req, res) => {
+      const {id} = req.params
+      const {email, role, status} = req.body;
+      const query = {
+        _id: new ObjectId(id)
+      }
+      const agreementResult = await agreementCartCollection.updateOne(query, {$set: { status }}, {upsert: true})
+      const userResult = await usersCollection.updateOne({email},{$set: { role }}, {upsert: true})
+      if(agreementResult.modifiedCount > 0 || userResult.modifiedCount > 0) {
+        res.send({success: true})
+      } 
+    })
+
 
 
     // Make Announcement //
@@ -83,26 +98,33 @@ async function run() {
       const result = await announcementCartCollection.find().toArray();
       res.send(result);
     });
-    
 
+    // apartment db to save
     app.get("/apartmentData", async (req, res) => {
       const result = await apartmentCollection.find().toArray();
       res.send(result);
     });
 
     // Agreement Carts Collection
-    app.get("/agreementCarts", async (req, res) => {
-      const email = req.query.email;
-      const query = { email: email };
-      const result = await agreementCartCollection.find(query).toArray();
-      res.send(result);
-    });
+    // app.get("/agreementCarts", async (req, res) => {
+    //   const email = req.query.email;
+    //   const query = { email: email };
+    //   const result = await agreementCartCollection.find(query).toArray();
+    //   res.send(result);
+    // });
 
     app.post("/agreementCarts", async (req, res) => {
       const cartItem = req.body;
       const result = await agreementCartCollection.insertOne(cartItem);
       res.send(result);
     });
+
+    //
+    app.get("/agreementCarts", async (req, res) => {
+      const result = await agreementCartCollection.find().toArray();
+      res.send(result);
+    });
+    //
 
     app.delete('/agreementCarts/:id', async(req, res) => {
       const id = req.params.id;
