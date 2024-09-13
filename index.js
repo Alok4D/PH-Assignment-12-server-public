@@ -8,7 +8,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion, Timestamp } = require("mongodb");
+const { MongoClient, ServerApiVersion, Timestamp, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.1yjndj5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -26,12 +26,9 @@ async function run() {
     // await client.connect();
 
     const usersCollection = client.db("apartmentDB").collection("users");
-    const apartmentCollection = client
-      .db("apartmentDB")
-      .collection("apartmentData");
-    const agreementCartCollection = client
-      .db("apartmentDB")
-      .collection("agreementCarts");
+    const apartmentCollection = client.db("apartmentDB").collection("apartmentData");
+    const agreementCartCollection = client.db("apartmentDB").collection("agreementCarts");
+    const announcementCartCollection = client.db("apartmentDB").collection("announcements");
 
     // user related api
     app.post("/users", async (req, res) => {
@@ -72,21 +69,15 @@ async function run() {
       res.send(result)
     })
 
-    // save user data in db
-    // app.put('/user', async (req, res) => {
-    //   const user = req.body
 
-    //   const options = { upsert: true }
-    //   const query = {email: user?.email}
-    //   const updateDoc = {
-    //     $set: {
-    //       ...user,
-    //       Timestamp: Date.now(),
-    //     },
-    //   }
-    //   const result =  await usersCollection.updateOne(query, updateDoc, options)
-    //   res.send(result)
-    // })
+
+    // Make Announcement //
+    // save a announcement data in db
+    app.post('/announcement', async (req, res) => {
+      const announcementData = req.body
+      const result = await announcementCartCollection.insertOne(announcementData)
+      res.send(result)
+    })
 
     app.get("/apartmentData", async (req, res) => {
       const result = await apartmentCollection.find().toArray();
@@ -106,6 +97,13 @@ async function run() {
       const result = await agreementCartCollection.insertOne(cartItem);
       res.send(result);
     });
+
+    app.delete('/agreementCarts/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await agreementCartCollection.deleteOne(query);
+      res.send(result);
+    })
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
