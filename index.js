@@ -30,6 +30,7 @@ async function run() {
     const announcementCartCollection = client.db("apartmentDB").collection("announcements");
     const apartmentCollection = client.db("apartmentDB").collection("apartmentData");
     const agreementCartCollection = client.db("apartmentDB").collection("agreementCarts");
+    const paymentCollection = client.db("apartmentDB").collection("payments");
     // 
     const agreementViewCollection = client.db("apartmentDB").collection("agreementView");
 
@@ -101,19 +102,12 @@ async function run() {
       res.send(result);
     });
 
+
     // apartment db to save
     app.get("/apartmentData", async (req, res) => {
       const result = await apartmentCollection.find().toArray();
       res.send(result);
     });
-
-    // Agreement Carts Collection
-    // app.get("/agreementCarts", async (req, res) => {
-    //   const email = req.query.email;
-    //   const query = { email: email };
-    //   const result = await agreementCartCollection.find(query).toArray();
-    //   res.send(result);
-    // });
 
     app.post("/agreementCarts", async (req, res) => {
       const cartItem = req.body;
@@ -148,7 +142,8 @@ async function run() {
 app.get('/agreementView', async(req, res) => {
   const email = req.query.email;
   const query = { email: email };
-  const result = await agreementViewCollection.find().toArray();
+  const result = await agreementViewCollection.find(query).toArray();
+  // console.log(result);
   res.send(result);
 })
 
@@ -163,6 +158,8 @@ app.delete('/agreementView/:id', async(req, res) => {
   const query = {_id: new ObjectId(id) }
   const result = await agreementViewCollection.deleteOne(query);
   res.send(result);
+  console.log(result);
+
 })
 
 //
@@ -184,6 +181,44 @@ app.post('/create-payment-intent', async (req, res) => {
     clientSecret: paymentIntent.client_secret
   })
 })
+
+
+// app.get('/payments', async(req, res) => {
+//   const query = {email: req.params.email}
+//   if(req.params.email !== req.decoded.email) {
+//     return res.status(403).send({ message : 'forbidden access'})
+//   }
+//   const result = await paymentCollection.find(query).toArray();
+//   res.send(result);
+// })
+
+app.get("/payments", async (req, res) => {
+  const result = await paymentCollection.find().toArray();
+  res.send(result);
+});
+
+
+// payment related api
+app.post('/payments', async(req, res) => {
+  const payment = req.body;
+  const paymentResult = await paymentCollection.insertOne(payment);
+
+
+  if(paymentResult.insertedId){
+    await agreementViewCollection.deleteMany({email: payment.email})
+  }
+  
+  res.send(paymentResult)
+  
+})
+
+app.get('/admin-stats', async(req, res) => {
+  const totalApartment = await apartmentCollection.countDocuments();
+  const totalUser = await usersCollection.countDocuments({role: 'user'});
+  const totalMember = await usersCollection.countDocuments({role: 'Member'});
+  res.send({totalApartment, totalUser, totalMember});
+})
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
